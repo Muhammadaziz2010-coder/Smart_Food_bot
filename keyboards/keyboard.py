@@ -1,6 +1,6 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
-
+from aiogram.types.web_app_info import WebAppInfo
 keyboard = ReplyKeyboardMarkup(
             keyboard=[
                 [KeyboardButton(text="📱 Iltimos Telefon raqamni yuboring", request_contact=True)]
@@ -26,12 +26,12 @@ location_keyboard = ReplyKeyboardMarkup(
     resize_keyboard=True,
     one_time_keyboard=True
 )
+
 web_app_keyboard = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="📍 Web app ni ochish",)],
+        [KeyboardButton(text="📍 Web app ni ochish", web_app=WebAppInfo(url="https://fastfood-lq3i.onrender.com/"))],
         [KeyboardButton(text="👈 Ortga")],
-
     ],
     resize_keyboard=True,
-    one_time_keyboard=True, 
+    one_time_keyboard=True,
 )

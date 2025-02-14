@@ -1,19 +1,18 @@
 from aiogram.types import Message
 from aiogram import Router
+from aiogram.filters import Command
 from keyboards.keyboard import *
 from utils.utils import *
-from aiogram.filters import Command
+from database.database import SessionLocal, User, Order, Discount
 
 router = Router()
 
-
 def go_back_one_step(user, session):
-    step_order = ["start", "menu", "ask_location", "location"]
+    step_order = ["start", "phone_number", "menu", "ask_location", "location", "orders", "discounts"]
     if user.step in step_order:
         prev_index = max(0, step_order.index(user.step) - 1)
         user.step = step_order[prev_index]
         session.commit()
-
 
 def get_reply_markup_for_step(step):
     if step == "menu":
@@ -22,9 +21,12 @@ def get_reply_markup_for_step(step):
         return location_keyboard
     elif step == "location":
         return web_app_keyboard
+    elif step == "orders":
+        return menu_keys
+    elif step == "discounts":
+        return menu_keys
     else:
         return keyboard
-
 
 @router.message(Command("start"))
 async def start_command(message: Message):
@@ -36,11 +38,9 @@ async def start_command(message: Message):
     user = session.query(User).filter_by(telegram_id=telegram_id).first()
 
     if user:
-        if user.step in ["menu", "ask_location", "location"]:
-            await message.answer("👋 Assalomu alaykum! \n\n"
-                                 "🍽️ Menuga xush kelibsiz! \n", reply_markup=menu_keys)
+        await message.answer("🍽 Menuga xush kelibsiz!", reply_markup=menu_keys)
     else:
-        add_user(telegram_id, username, name, step="start")
+        add_user(telegram_id, username, name, step="phone_number")
         await message.answer(
             "👋 Assalomu alaykum! \n"
             "🤖 Men Smart Food botman! \n\n"
@@ -48,7 +48,6 @@ async def start_command(message: Message):
             reply_markup=keyboard
         )
     session.close()
-
 
 @router.message(lambda message: message.contact)
 async def handle_phone_number(message: Message):
@@ -62,7 +61,6 @@ async def handle_phone_number(message: Message):
         user.phone_number = phone_number
         user.step = "menu"
         session.commit()
-
         await message.answer(
             f"✅ Rahmat! Sizning ma'lumotlaringiz saqlandi! \n\n"
             f"🆔 ID: {user.id}\n"
@@ -75,7 +73,6 @@ async def handle_phone_number(message: Message):
     else:
         await message.answer("⚠️ Xatolik: Avval /start ni bosing.")
     session.close()
-
 
 @router.message(lambda message: message.text == "🛒 Buyurtma Berish")
 async def handle_order(message: Message):
@@ -91,7 +88,6 @@ async def handle_order(message: Message):
         await message.answer("⚠️ Xatolik: Avval /start ni bosing.")
     session.close()
 
-
 @router.message(lambda message: message.text == "👈 Ortga")
 async def handle_back(message: Message):
     session = SessionLocal()
@@ -104,7 +100,6 @@ async def handle_back(message: Message):
     else:
         await message.answer("⚠️ Xatolik: Avval /start ni bosing.")
     session.close()
-
 
 @router.message(lambda message: message.location)
 async def handle_location(message: Message):
@@ -124,6 +119,52 @@ async def handle_location(message: Message):
                              "🛒 Buyurtma berish uchun pastagi tugmani bosing", reply_markup=web_app_keyboard)
     else:
         await message.answer("⚠️ Xatolik: Avval /start ni bosing.")
+    session.close()
+
+@router.message(lambda message: message.text == "🛍️ Mening buyurtmalarim")
+async def my_orders(message: Message):
+    session = SessionLocal()
+    telegram_id = message.from_user.id
+    user = session.query(User).filter_by(telegram_id=telegram_id).first()
+
+    if user:
+        user.step = "orders"
+        session.commit()
+        orders = session.query(Order).filter_by(user_id=user.id).all()
+        if orders:
+            response_text = "📦 Sizning buyurtmalaringiz:\n\n"
+            for order in orders:
+                response_text += (
+                    f"🆔 Buyurtma ID: {order.id}\n"
+                    f"📅 Sana: {order.date}\n"
+                    f"📍 Manzil: {order.address or 'Noma\'lum'}\n"
+                    f"💰 Narx: {order.total_price or 0} so'm\n"
+                    f"📜 Holat: {order.status or 'Holat mavjud emas'}\n"
+                    "----------------------\n"
+                )
+            await message.answer(response_text, reply_markup=menu_keys)
+        else:
+            await message.answer("❌ Sizda hali buyurtmalar mavjud emas.", reply_markup=menu_keys)
+    else:
+        await message.answer("⚠️ Xatolik: Avval /start ni bosing.")
+    session.close()
+
+@router.message(lambda message: message.text == "💰 Aksiyalar")
+async def handle_discounts(message: Message):
+    session = SessionLocal()
+    discounts = session.query(Discount).filter_by(is_active=1).all()
+    if discounts:
+        response_text = "🎉 Mavjud aksiyalar:\n\n"
+        for discount in discounts:
+            response_text += (
+                f"🔹 {discount.title}\n"
+                f"📜 {discount.description}\n"
+                f"💰 Chegirma: {discount.discount_percent}%\n"
+                "----------------------\n"
+            )
+        await message.answer(response_text, reply_markup=menu_keys)
+    else:
+        await message.answer("❌ Hozircha hech qanday aksiya mavjud emas.", reply_markup=menu_keys)
     session.close()
 
 @router.message()

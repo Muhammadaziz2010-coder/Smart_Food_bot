@@ -36,4 +36,11 @@ class Order(Base):
     total_price = Column(DECIMAL(20,2))
     type = Column(String)
 
+class Discount(Base):
+    __tablename__ = "discounts"
+    id = Column(Integer, primary_key=True)
+    title = Column(String, nullable=False)
+    description = Column(String, nullable=False)
+    discount_percent = Column(Float, nullable=False)
+    is_active = Column(Integer, default=1)  # 1 = Active, 0 = Inactive
 
