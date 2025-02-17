@@ -3,8 +3,7 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiogram.types.web_app_info import WebAppInfo
 keyboard = ReplyKeyboardMarkup(
             keyboard=[
-                [KeyboardButton(text="📱 Iltimos Telefon raqamni yuboring", request_contact=True)]
-            ],
+                [KeyboardButton(text="📱 Iltimos Telefon raqamni yuboring", request_contact=True)]],
             resize_keyboard=True,
             one_time_keyboard=True
         )
