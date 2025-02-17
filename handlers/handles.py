@@ -152,20 +152,26 @@ async def my_orders(message: Message):
 @router.message(lambda message: message.text == "💰 Aksiyalar")
 async def handle_discounts(message: Message):
     session = SessionLocal()
-    discounts = session.query(Discount).filter_by(is_active=1).all()
-    if discounts:
-        response_text = "🎉 Mavjud aksiyalar:\n\n"
-        for discount in discounts:
-            response_text += (
-                f"🔹 {discount.title}\n"
-                f"📜 {discount.description}\n"
-                f"💰 Chegirma: {discount.discount_percent}%\n"
-                "----------------------\n"
-            )
-        await message.answer(response_text, reply_markup=menu_keys)
-    else:
-        await message.answer("❌ Hozircha hech qanday aksiya mavjud emas.", reply_markup=menu_keys)
-    session.close()
+    telegram_id = message.from_user.id
+    user = session.query(User).filter_by(telegram_id=telegram_id).first()
+
+    if user:
+        user.step = "discounts"
+        session.commit()
+        discounts = session.query(Discount).all()
+        if discounts:
+            response_text = "🎉 Mavjud aksiyalar:\n\n"
+            for discount in discounts:
+                response_text += (
+                    f"🔹 {discount.title}\n"
+                    f"📜 {discount.description}\n"
+                    f"💰 Chegirma: {discount.discount_percent}%\n"
+                    "----------------------\n"
+                )
+            await message.answer(response_text, reply_markup=menu_keys)
+        else:
+            await message.answer("❌ Hozircha hech qanday aksiya mavjud emas.", reply_markup=menu_keys)
+        session.close()
 
 @router.message()
 async def fallback_handler(message: Message):
